@@ -1,8 +1,13 @@
 import os
+from dotenv import load_dotenv
 
 import tiktoken
 from neo4j import GraphDatabase
 from openai import OpenAI
+from mistralai.client import Mistral
+
+
+load_dotenv()
 
 neo4j_driver = GraphDatabase.driver(
     os.environ.get("NEO4J_URI"),
@@ -10,10 +15,7 @@ neo4j_driver = GraphDatabase.driver(
     notifications_min_severity="OFF"
 )
 
-open_ai_client = OpenAI(
-    api_key=os.environ.get("OPENAI_API_KEY"),
-)
-
+mistral_client = Mistral(api_key=os.getenv("MISTRAL_API_KEY", ""))
 
 def chunk_text(text, chunk_size, overlap, split_on_whitespace_only=True):
     chunks = []
@@ -51,16 +53,12 @@ def num_tokens_from_string(string: str, model: str = "gpt-4") -> int:
     return num_tokens
 
 
-def embed(texts, model="text-embedding-3-small"):
-    response = open_ai_client.embeddings.create(
-        input=texts,
-        model=model,
-    )
-    return list(map(lambda n: n.embedding, response.data))
+def embed(texts, model="mistral-embed"):
+    return mistral_client.embeddings.create(model=model, inputs=texts)
 
 
 def chat(messages, model="gpt-4o", temperature=0, config={}):
-    response = open_ai_client.chat.completions.create(
+    response = mistral_client.chat.completions.create(
         model=model,
         temperature=temperature,
         messages=messages,
@@ -70,7 +68,7 @@ def chat(messages, model="gpt-4o", temperature=0, config={}):
 
 
 def tool_choice(messages, model="gpt-4o", temperature=0, tools=[], config={}):
-    response = open_ai_client.chat.completions.create(
+    response = mistral_client.chat.completions.create(
         model=model,
         temperature=temperature,
         messages=messages,
