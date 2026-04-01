@@ -46,19 +46,28 @@ def chunk_text(text, chunk_size, overlap, split_on_whitespace_only=True):
     return chunks
 
 
-def num_tokens_from_string(string: str, model: str = "gpt-4") -> int:
+def num_tokens_from_string(string: str, model: str = "mistral-embed") -> int:
     """Returns the number of tokens in a text string."""
-    encoding = tiktoken.encoding_for_model(model)
+    encoding = tiktoken.get_encoding("o200k_base")
     num_tokens = len(encoding.encode(string))
     return num_tokens
 
 
 def embed(texts, model="mistral-embed"):
-    return mistral_client.embeddings.create(model=model, inputs=texts)
+    response = mistral_client.embeddings.create(model=model, inputs=texts)
+
+    # Mistral Embeddings return a response object like:
+    # EmbeddingResponse(data=[EmbeddingData(embedding=[...]), ...], model=..., usage=...)
+    # Convert to plain list of float vectors compatible with Neo4j / downstream code.
+    if hasattr(response, "data"):
+        return [item.embedding for item in response.data]
+
+    # Fallback if response is already a dict-like object (e.g., from older API wrappers)
+    return [item["embedding"] for item in response.get("data", [])]
 
 
-def chat(messages, model="gpt-4o", temperature=0, config={}):
-    response = mistral_client.chat.completions.create(
+def chat(messages, model="mistral-small-latest", temperature=0, config={}):
+    response = mistral_client.chat.complete(
         model=model,
         temperature=temperature,
         messages=messages,
@@ -67,8 +76,8 @@ def chat(messages, model="gpt-4o", temperature=0, config={}):
     return response.choices[0].message.content
 
 
-def tool_choice(messages, model="gpt-4o", temperature=0, tools=[], config={}):
-    response = mistral_client.chat.completions.create(
+def tool_choice(messages, model="mistral-small-latest", temperature=0, tools=[], config={}):
+    response = mistral_client.chat.complete(
         model=model,
         temperature=temperature,
         messages=messages,
