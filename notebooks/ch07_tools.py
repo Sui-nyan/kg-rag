@@ -262,8 +262,14 @@ SET c.text = $text
 WITH c
 UNWIND $data AS row
 MERGE (n:__Entity__ {name: row.entity_name})
-SET n:$(row.entity_type),
-    n.description = coalesce(n.description, []) + [row.entity_description]
+SET n.description = coalesce(n.description, []) + [row.entity_description]
+FOREACH (_ IN CASE WHEN row.entity_type = 'PERSON' THEN [1] ELSE [] END | SET n:PERSON)
+FOREACH (_ IN CASE WHEN row.entity_type = 'ORGANIZATION' THEN [1] ELSE [] END | SET n:ORGANIZATION)
+FOREACH (_ IN CASE WHEN row.entity_type = 'LOCATION' THEN [1] ELSE [] END | SET n:LOCATION)
+FOREACH (_ IN CASE WHEN row.entity_type = 'GOD' THEN [1] ELSE [] END | SET n:GOD)
+FOREACH (_ IN CASE WHEN row.entity_type = 'EVENT' THEN [1] ELSE [] END | SET n:EVENT)
+FOREACH (_ IN CASE WHEN row.entity_type = 'CREATURE' THEN [1] ELSE [] END | SET n:CREATURE)
+FOREACH (_ IN CASE WHEN row.entity_type = 'WEAPON_OR_TOOL' THEN [1] ELSE [] END | SET n:WEAPON_OR_TOOL)
 MERGE (n)<-[:MENTIONS]-(c)
 """
 
