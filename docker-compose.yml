@@ -1,0 +1,14 @@
+services:
+  neo4j:
+    image: neo4j:5.26.25
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - ./plugins:/plugins
+    environment:
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.meta.data
+      - NEO4J_AUTH=neo4j/newpassword
+      - NEO4J_dbms_security_auth__enabled=false
+  
